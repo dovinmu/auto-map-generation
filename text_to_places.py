@@ -9,28 +9,28 @@ nlp = en_core_web_sm.load()
 skip = ['mars', 'earth', '\n', 'xi', 'xv']
 current_id = 0
 
-def getLocations(text, nameOnly=True):
-    return getLabeledEntities(text, ['GPE', 'LOC'], nameOnly)
+def getLocations(text):
+    return getLabeledEntities(text, ['GPE', 'LOC'])
 
-def getLabeledEntities(text, labels, nameOnly=True):
-    doc = nlp(text, disable=['parser', 'tagger', 'textcat'])
+def getLabeledEntities(text, labels):
+    # disable two of these to speed things up but one will break .sent property
+    # doc = nlp(text, disable=['parser', 'tagger', 'textcat'])
+    doc = nlp(text)
     entities = []
     for i,X in enumerate(doc.ents):
         if X.label_ in labels and X.text.lower() not in skip:
-            if nameOnly:
-                entities.append(X.text)
-            else:
-                entities.append([X.text, X.label_, i, X.sent])
+            entities.append([X.text, X.label_, i, X.sent])
     return entities
 
-def getLatLng(locations):
+def getLatLng(locations, output=False):
     coordinates = {}
     for i,X in enumerate(locations):
         if type(X) == type([]):
             location_name = X[0]
         else:
             location_name = X
-        print(f'{i+1}/{len(locations)}', location_name)
+        if output:
+            print(f'{i+1}/{len(locations)}', location_name)
         if location_name not in coordinates:
             coordinates[location_name] = geocoder.osm(location_name.lower())
 
@@ -43,9 +43,9 @@ def getLatLng(locations):
             )
     return latLngs
 
-def makeDataFrame(text):
-    locs = getLocations(text, False)
-    latLngs = getLatLng(locs)
+def makeDataFrame(text, output=False):
+    locs = getLocations(text)
+    latLngs = getLatLng(locs, output)
     filtered_locs = []
     for loc in locs:
         if loc[0] in latLngs:
