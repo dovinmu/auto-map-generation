@@ -13,7 +13,7 @@ def getLocations(text, nameOnly=True):
     return getLabeledEntities(text, ['GPE', 'LOC'], nameOnly)
 
 def getLabeledEntities(text, labels, nameOnly=True):
-    doc = nlp(text)
+    doc = nlp(text, disable=['parser', 'tagger', 'textcat'])
     entities = []
     for i,X in enumerate(doc.ents):
         if X.label_ in labels and X.text.lower() not in skip:
