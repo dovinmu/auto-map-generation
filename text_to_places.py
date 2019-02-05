@@ -13,6 +13,9 @@ def getLocations(text, includesents=True):
     return getLabeledEntities(text, ['GPE', 'LOC'], includesents)
 
 def getLabeledEntities(text, labels, includesents=True):
+    '''
+    Outputs a list of lists of the form [location text]
+    '''
     doc = nlp(text, disable=['textcat', 'tagger']) if includesents else nlp(text, disable=['parser', 'textcat', 'tagger'])
     entities = []
     for i,X in enumerate(doc.ents):
@@ -31,7 +34,7 @@ def getGeojson(locations, locator=geocoder.osm, output=False):
         if output:
             print(f'{i+1}/{len(locations)}', location_name)
         if location_name not in coordinates:
-            coordinates[location_name] = locator(location_name.lower())
+            coordinates[location_name] = locator(location_name.lower()).geojson
     return coordinates
 
 def getLatLng(locations, locator=geocoder.osm, output=False):
@@ -40,11 +43,11 @@ def getLatLng(locations, locator=geocoder.osm, output=False):
 
 def geojsonToLatLng(coordinates):
     latLngs = {}
-    for name,item in coordinates.items():
-        if item.geojson['features']:
+    for name,geojson in coordinates.items():
+        if geojson['features']:
             latLngs[name] = Point(
-            item.geojson['features'][0]['properties']['lng'],
-            item.geojson['features'][0]['properties']['lat']
+            geojson['features'][0]['properties']['lng'],
+            geojson['features'][0]['properties']['lat']
             )
     return latLngs
 
