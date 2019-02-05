@@ -19,11 +19,14 @@ def getDataFrame(latlngs):
 def getBoundingBox(gdf):
     return { 'xmax': 10, 'xmin': -10, 'ymax': 53, 'ymin': 45}
 
-def mapCategory(gdf, ax, color):
-    gdf.plot(ax=ax, color=color)
+def mapCategory(gdf, ax, color, label):
+    '''
+    Plot the entire dataframe passed in with a single color.
+    '''
+    gdf.plot(ax=ax, color=color, label=label)
     for idx,row in gdf.iterrows():
         text_coords = [arr.tolist()[0] for arr in row.Coordinates.xy]
-        plt.annotate(s=idx, xy=text_coords, horizontalalignment='center', size="medium")
+        plt.annotate(s=idx, xy=text_coords, horizontalalignment='center', size="large")
 
     return ax
 
@@ -54,12 +57,19 @@ def heatmap(d, bins=(400,400), smoothing=3, cmap='Greys'):
     plt.ylim(-75, 75)
     plt.show()
 
-def mapByCategory(gdf):
+def mapByCategory(gdf, labels=False):
+    '''
+    Plot subsets of the dataframe by 'category' column
+    '''
     ax = world.plot(
         color='white', edgecolor='black', figsize=(20,20)
     )
     colors = ['red', 'orange', 'green', 'blue', 'indigo', 'purple', 'brown']
     for i,cat in enumerate(gdf.category.unique()):
         gdf[gdf.category == cat].plot(ax=ax, color=colors[i%len(colors)], label=cat, alpha=0.25)
+    if labels:
+        for idx,row in gdf.iterrows():
+            text_coords = [arr.tolist()[0] for arr in row.Coordinates.xy]
+            plt.annotate(s=idx, xy=text_coords, horizontalalignment='center', size="medium")
     plt.legend()
     plt.show()

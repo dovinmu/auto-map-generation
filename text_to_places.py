@@ -21,7 +21,7 @@ def getLabeledEntities(text, labels, includesents=True):
 
     return entities
 
-def getLatLng(locations, output=False):
+def getGeojson(locations, locator=geocoder.osm, output=False):
     coordinates = {}
     for i,X in enumerate(locations):
         if type(X) == type([]):
@@ -31,16 +31,23 @@ def getLatLng(locations, output=False):
         if output:
             print(f'{i+1}/{len(locations)}', location_name)
         if location_name not in coordinates:
-            coordinates[location_name] = geocoder.osm(location_name.lower())
+            coordinates[location_name] = locator(location_name.lower())
+    return coordinates
 
+def getLatLng(locations, locator=geocoder.osm, output=False):
+    geojsons = getGeojson(locations, locator, output)
+    return coordinatesToLatLng(geojsons)
+
+def geojsonToLatLng(coordinates):
     latLngs = {}
     for name,item in coordinates.items():
         if item.geojson['features']:
             latLngs[name] = Point(
-                item.geojson['features'][0]['properties']['lng'],
-                item.geojson['features'][0]['properties']['lat']
+            item.geojson['features'][0]['properties']['lng'],
+            item.geojson['features'][0]['properties']['lat']
             )
     return latLngs
+
 
 def makeDataFrame(text, includesents=True, output=False):
     locs = getLocations(text, includesents)
