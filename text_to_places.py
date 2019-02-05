@@ -9,17 +9,16 @@ nlp = en_core_web_sm.load()
 skip = ['mars', 'earth', '\n', 'xi', 'xv']
 current_id = 0
 
-def getLocations(text):
-    return getLabeledEntities(text, ['GPE', 'LOC'])
+def getLocations(text, includesents=True):
+    return getLabeledEntities(text, ['GPE', 'LOC'], includesents)
 
-def getLabeledEntities(text, labels):
-    # disable two of these to speed things up but one will break .sent property
-    # doc = nlp(text, disable=['parser', 'tagger', 'textcat'])
-    doc = nlp(text)
+def getLabeledEntities(text, labels, includesents=True):
+    doc = nlp(text, disable=['textcat', 'tagger']) if includesents else nlp(text, disable=['parser', 'textcat', 'tagger'])
     entities = []
     for i,X in enumerate(doc.ents):
         if X.label_ in labels and X.text.lower() not in skip:
-            entities.append([X.text, X.label_, i, X.sent])
+            entities.append([X.text, X.label_, i, X.sent] if includesents else [X.text, X.label_, i])
+
     return entities
 
 def getLatLng(locations, output=False):
@@ -43,15 +42,15 @@ def getLatLng(locations, output=False):
             )
     return latLngs
 
-def makeDataFrame(text, output=False):
-    locs = getLocations(text)
+def makeDataFrame(text, includesents=True, output=False):
+    locs = getLocations(text, includesents)
     latLngs = getLatLng(locs, output)
     filtered_locs = []
     for loc in locs:
         if loc[0] in latLngs:
             filtered_locs.append(loc + [latLngs[loc[0]]])
 
-    df = pd.DataFrame(filtered_locs, columns=['text', 'label', 'idx', 'sentence', 'coordinates'])
+    df = pd.DataFrame(filtered_locs, columns=['text', 'label', 'idx', 'sentence', 'coordinates']) if includesents else pd.DataFrame(filtered_locs, columns=['text', 'label', 'idx', 'coordinates'])
 
     gdf = gpd.GeoDataFrame(df, geometry='coordinates')
     return gdf
