@@ -3,6 +3,7 @@ import en_core_web_sm
 import geocoder
 import pandas as pd
 import geopandas as gpd
+import wikipedia
 from shapely.geometry import Point
 nlp = en_core_web_sm.load()
 
@@ -51,6 +52,17 @@ def geojsonToLatLng(coordinates):
             )
     return latLngs
 
+def wikipediaFilter(geojsondict):                #probably too strict
+    filtered = {}
+    for name,geojson in geojsondict.items():
+        try:
+            a,b = wikipedia.page(name).coordinates
+            a,b = float(a), float(b)
+        except:
+            a,b = (0.0, 0.0)
+    if abs(a-lat) < 1 and abs(b-lng) < 1:
+        filtered[name] = geojson
+    return filtered
 
 def makeDataFrame(text, includesents=True, output=False):
     locs = getLocations(text, includesents)
