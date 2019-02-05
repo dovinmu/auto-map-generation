@@ -52,16 +52,50 @@ def geojsonToLatLng(coordinates):
             )
     return latLngs
 
-def wikipediaFilter(geojsondict):                #probably too strict
+def geojsonFilter(geojsons, locator):
+    osm_allowed = ['place', 'boundary']
+    arcgis_allowed = ['Locality']
+
+    locations = {}
+    for name,geojson in geojsons.items():
+        for f in geojson['features']:
+            quality = f['properties']['quality']
+            if locator == 'osm':
+                geotype = f['properties']['raw']['type']
+                category = f['properties']['raw']['category']
+            else:
+                geotype = category = None
+
+            print(name, '(qual, cat, type) :',quality,category,geotype)
+            if locator=='osm':
+                if category in osm_allowed:
+                    locations[name] = geojson
+                    break
+            elif locator=='arcgis':
+                if quality in arcgis_allowed:
+                    locations[name] = geojson
+                    break
+            else:
+                raise Exception("Locator unknown:", locator)
+            print("...filtered", name)
+    return locations
+
+def wikipediaFilter(latLngs):                #probably too strict
     filtered = {}
-    for name,geojson in geojsondict.items():
+    for name,latLng in latLngs.items():
+        lng = latLng.x
+        lat = latLng.y
+
         try:
             a,b = wikipedia.page(name).coordinates
             a,b = float(a), float(b)
+            print('got coords for', name)
         except:
-            a,b = (0.0, 0.0)
-    if abs(a-lat) < 1 and abs(b-lng) < 1:
-        filtered[name] = geojson
+            print('coords not found for', name)
+            # a,b = (0.0, 0.0)
+            continue
+        if abs(a-lat) < 1 and abs(b-lng) < 1:
+            filtered[name] = latLng
     return filtered
 
 def makeDataFrame(text, includesents=True, output=False):
