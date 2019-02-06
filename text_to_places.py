@@ -94,28 +94,24 @@ def geojsonFilter(geojsons, locator, output=False):
                 print("...filtered", name)
     return locations
 
-def wikipediaFilter(latLngs):
-    '''
-    Given a text-to-point dictionary, filters by whether that text's wikipedia page
-    exists and contains a lat,lng that is similar. Very strict.
-    TODO: and fails with redirect pages.
-    '''
-    filtered = {}
-    for name,latLng in latLngs.items():
-        lng = latLng.x
-        lat = latLng.y
-
+def wikipediaFilter(df):
+    to_keep = []
+    for row in df.itertuples():
+        name = row.text
+        lng, lat = row.coordinates.x, row.coordinates.y
         try:
             a,b = wikipedia.page(name).coordinates
             a,b = float(a), float(b)
-            print('got coords for', name)
         except:
             print('coords not found for', name)
-            # a,b = (0.0, 0.0)
             continue
         if abs(a-lat) < 1 and abs(b-lng) < 1:
-            filtered[name] = latLng
-    return filtered
+            print('coords matched for', name)
+            to_keep.append(row.Index)
+        else:
+            print('found coords did not match for', name)
+
+    return df.iloc[to_keep]
 
 def makeDataFrame(text, includesents=True, output=False, locator=geocoder.osm):
     locs = getLocations(text, includesents)
