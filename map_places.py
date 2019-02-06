@@ -11,9 +11,9 @@ world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 
 def getDataFrame(latlngs):
     print("getDataFrame DEPRECATED, use makeDataFrame instead")
-    df = pd.DataFrame(list(latlngs.values()), index=list(latlngs.keys()), columns=['Coordinates'])
+    df = pd.DataFrame(list(latlngs.values()), index=list(latlngs.keys()), columns=['coordinates'])
 
-    gdf = gpd.GeoDataFrame(df, geometry='Coordinates')
+    gdf = gpd.GeoDataFrame(df, geometry='coordinates')
     return gdf
 
 def getBoundingBox(gdf):
@@ -25,9 +25,8 @@ def mapCategory(gdf, ax, color, label):
     '''
     gdf.plot(ax=ax, color=color, label=label)
     for idx,row in gdf.iterrows():
-        text_coords = [arr.tolist()[0] for arr in row.Coordinates.xy]
-        plt.annotate(s=idx, xy=text_coords, horizontalalignment='center', size="large")
-
+        text_coords = [arr.tolist()[0] for arr in row.coordinates.xy]
+        plt.annotate(s=row.text, xy=text_coords, horizontalalignment='center', size="large")
     return ax
 
 def heatmap(d, bins=(400,400), smoothing=3, cmap='Greys'):
@@ -69,7 +68,7 @@ def mapByCategory(gdf, labels=False):
         gdf[gdf.category == cat].plot(ax=ax, color=colors[i%len(colors)], label=cat, alpha=0.25)
     if labels:
         for idx,row in gdf.iterrows():
-            text_coords = [arr.tolist()[0] for arr in row.Coordinates.xy]
+            text_coords = [arr.tolist()[0] for arr in row.coordinates.xy]
             plt.annotate(s=idx, xy=text_coords, horizontalalignment='center', size="medium")
     plt.legend()
     plt.show()

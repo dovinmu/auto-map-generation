@@ -15,7 +15,7 @@ def getLocations(text, includesents=True):
 
 def getLabeledEntities(text, labels, includesents=True):
     '''
-    Outputs a list of lists of the form [location text]
+    Given raw text, outputs a list of lists of the form [text, entity label, word index, sentence (if includesents=True)]
     '''
     doc = nlp(text, disable=['textcat', 'tagger']) if includesents else nlp(text, disable=['parser', 'textcat', 'tagger'])
     entities = []
@@ -26,23 +26,32 @@ def getLabeledEntities(text, labels, includesents=True):
     return entities
 
 def getGeojson(locations, locator=geocoder.osm, output=False):
-    coordinates = {}
+    '''
+    Given the output of getLocations, query a text-to-location service and return
+    a dictionary mapping { text: geojson from query result }
+    '''
+    geojsonDict = {}
     for i,X in enumerate(locations):
-        if type(X) == type([]):
-            location_name = X[0]
-        else:
-            location_name = X
+        location_name = X[0]
         if output:
             print(f'{i+1}/{len(locations)}', location_name)
-        if location_name not in coordinates:
-            coordinates[location_name] = locator(location_name.lower()).geojson
-    return coordinates
+        if location_name not in geojsonDict:
+            geojsonDict[location_name] = locator(location_name.lower()).geojson
+    return geojsonDict
 
 def getLatLng(locations, locator=geocoder.osm, output=False):
-    geojsons = getGeojson(locations, locator, output)
-    return coordinatesToLatLng(geojsons)
+    '''
+    Given the output of getLocations, query a text-to-location service and return
+    a dictionary mapping { text: Point(lat,lng) }
+    '''
+    geojsonDict = getGeojson(locations, locator, output)
+    return geojsonToLatLng(geojsonDict)
 
 def geojsonToLatLng(coordinates):
+    '''
+    Extract the lat,lng from geojson objects and return a new dictionary mapping
+    { text: Point(lat,lng) }
+    '''
     latLngs = {}
     for name,geojson in coordinates.items():
         if geojson['features']:
@@ -52,7 +61,11 @@ def geojsonToLatLng(coordinates):
             )
     return latLngs
 
-def geojsonFilter(geojsons, locator):
+def geojsonFilter(geojsons, locator, output=False):
+    '''
+    Given a geojson dictionary, filter based on properties in the geojson using
+    a per-locator service whitelist.
+    '''
     osm_allowed = ['place', 'boundary']
     arcgis_allowed = ['Locality']
 
@@ -65,8 +78,8 @@ def geojsonFilter(geojsons, locator):
                 category = f['properties']['raw']['category']
             else:
                 geotype = category = None
-
-            print(name, '(qual, cat, type) :',quality,category,geotype)
+            if output:
+                print(name, '(qual, cat, type) :',quality,category,geotype)
             if locator=='osm':
                 if category in osm_allowed:
                     locations[name] = geojson
@@ -77,10 +90,16 @@ def geojsonFilter(geojsons, locator):
                     break
             else:
                 raise Exception("Locator unknown:", locator)
-            print("...filtered", name)
+            if output:
+                print("...filtered", name)
     return locations
 
-def wikipediaFilter(latLngs):                #probably too strict
+def wikipediaFilter(latLngs):
+    '''
+    Given a text-to-point dictionary, filters by whether that text's wikipedia page
+    exists and contains a lat,lng that is similar. Very strict.
+    TODO: and fails with redirect pages.
+    '''
     filtered = {}
     for name,latLng in latLngs.items():
         lng = latLng.x
@@ -98,9 +117,13 @@ def wikipediaFilter(latLngs):                #probably too strict
             filtered[name] = latLng
     return filtered
 
-def makeDataFrame(text, includesents=True, output=False):
+def makeDataFrame(text, includesents=True, output=False, locator=geocoder.osm):
     locs = getLocations(text, includesents)
-    latLngs = getLatLng(locs, output)
+    geojsons = getGeojson(locs, locator)
+    geojsons = geojsonFilter(geojsons, locator.__name__)
+    latLngs = geojsonToLatLng(geojsons)
+
+    # there will have been some locations that get an error from the locator API--filter these
     filtered_locs = []
     for loc in locs:
         if loc[0] in latLngs:
