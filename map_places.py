@@ -61,7 +61,7 @@ def mapByCategory(gdf, labels=False):
     Plot subsets of the dataframe by 'category' column
     '''
     ax = world.plot(
-        color='white', edgecolor='black', figsize=(20,20)
+        color='white', edgecolor='gray', figsize=(20,20)
     )
     colors = ['red', 'orange', 'green', 'blue', 'indigo', 'purple', 'brown']
     for i,cat in enumerate(gdf.category.unique()):
@@ -72,3 +72,27 @@ def mapByCategory(gdf, labels=False):
             plt.annotate(s=idx, xy=text_coords, horizontalalignment='center', size="medium")
     plt.legend()
     plt.show()
+
+def mapWithLines(gdf, labels=False):
+    '''
+    Plot all points with lines connecting successive points in the dataframe.
+    '''
+    ax = world.plot(
+        color='white', edgecolor='gray', figsize=(20,20)
+    )
+    gdf.plot(ax=ax, color='red')
+    line_colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w', 'xkcd:purple', 'xkcd:sky blue', 'xkcd:lavender', 'xkcd:aqua', 'lilac']
+    prev_point = None
+    prev_text = None
+    for idx,row in gdf.iterrows():
+        curr_text = row.text
+        curr_point = row.coordinates
+        print(row.text, curr_point.x, curr_point.y)
+        if prev_point:
+            plt.plot([prev_point.x, curr_point.x], [prev_point.y, curr_point.y], line_colors[idx], linewidth=2, label=f'{prev_text} to {curr_text}')
+        prev_point = curr_point
+        prev_text = curr_text
+    if labels:
+        for idx,row in gdf.iterrows():
+            text_coords = [arr.tolist()[0] for arr in row.coordinates.xy]
+            plt.annotate(s=row.text, xy=text_coords, horizontalalignment='center', size="medium")

@@ -119,8 +119,8 @@ def wikipediaFilter(latLngs):
 
 def makeDataFrame(text, includesents=True, output=False, locator=geocoder.osm):
     locs = getLocations(text, includesents)
-    geojsons = getGeojson(locs, locator)
-    geojsons = geojsonFilter(geojsons, locator.__name__)
+    geojsons = getGeojson(locs, locator, output)
+    geojsons = geojsonFilter(geojsons, locator.__name__, output)
     latLngs = geojsonToLatLng(geojsons)
 
     # there will have been some locations that get an error from the locator API--filter these
