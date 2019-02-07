@@ -81,15 +81,17 @@ def mapWithLines(gdf, labels=False):
         color='white', edgecolor='gray', figsize=(20,20)
     )
     gdf.plot(ax=ax, color='red')
-    line_colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w', 'xkcd:purple', 'xkcd:sky blue', 'xkcd:lavender', 'xkcd:aqua', 'lilac']
+    line_colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'xkcd:purple', 'xkcd:sky blue', 'xkcd:lavender', 'xkcd:aqua', 'xkcd:lilac']
     prev_point = None
     prev_text = None
     for idx,row in gdf.iterrows():
         curr_text = row.text
         curr_point = row.coordinates
         print(row.text, curr_point.x, curr_point.y)
-        if prev_point:
-            plt.plot([prev_point.x, curr_point.x], [prev_point.y, curr_point.y], line_colors[idx], linewidth=2, label=f'{prev_text} to {curr_text}')
+        if prev_point and curr_text != prev_text:
+            plt.plot([prev_point.x, curr_point.x], [prev_point.y, curr_point.y],
+                      color=line_colors[idx%len(line_colors)], linewidth=2,
+                      linestyle=':', label=f'{prev_text} to {curr_text}')
         prev_point = curr_point
         prev_text = curr_text
     if labels:

@@ -61,7 +61,7 @@ def geojsonToLatLng(coordinates):
             )
     return latLngs
 
-def geojsonFilter(geojsons, locator, output=False):
+def geojsonFilter(geojsons, locator='osm', output=False):
     '''
     Given a geojson dictionary, filter based on properties in the geojson using
     a per-locator service whitelist.
@@ -94,22 +94,43 @@ def geojsonFilter(geojsons, locator, output=False):
                 print("...filtered", name)
     return locations
 
+def sizeFilter(geojsons, min_size=0, max_size=1_000_000):
+    def size(bbox):
+        xlen = abs(float(bbox[0]) - float(bbox[1]))
+        ylen = abs(float(bbox[2]) - float(bbox[3]))
+        return xlen * ylen
+    result = {}
+    for name,geojson in geojsons.items():
+        bbox = geojson['features'][0]['properties']['raw']['boundingbox']
+        # print(name, size(bbox))
+        sz = size(bbox)
+        if sz > 0.005 and sz < 2:
+            result[name] = geojson
+        else:
+            print('filtered', name, 'of size', round(sz,4))
+    return result
+
 def wikipediaFilter(df):
     to_keep = []
     for row in df.itertuples():
         name = row.text
-        lng, lat = row.coordinates.x, row.coordinates.y
         try:
-            a,b = wikipedia.page(name).coordinates
-            a,b = float(a), float(b)
-        except:
-            print('coords not found for', name)
-            continue
-        if abs(a-lat) < 1 and abs(b-lng) < 1:
-            print('coords matched for', name)
+            lat,lng = wikipedia.page(name).coordinates
+        except wikipedia.DisambiguationError:
+            print('disambiguation error', name)
             to_keep.append(row.Index)
-        else:
-            print('found coords did not match for', name)
+            continue
+        except:
+            print("no coordinates for", name, '...filtered')
+            continue
+        print('got lat,lng:', name, round(lat,2), round(lng,2))
+        to_keep.append(row.Index)
+        df.at[row.Index, 'coordinates'] = Point(lng, lat)
+        # if abs(a-lat) < 1 and abs(b-lng) < 1:
+        #     print('coords matched for', name)
+        #     to_keep.append(row.Index)
+        # else:
+        #     print('found coords did not match for', name)
 
     return df.iloc[to_keep]
 
